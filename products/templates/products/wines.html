@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mx-5">
+        <div class="col-sm-12 page-title text-center">
+            <h2>Our wines</h2>
+        </div>
+    </div>
+    {% for category in current_categories %}
+    <div class="row mx-3">
+        <div class="col-sm-12 text-center page-subtitle">
+            <h3>{{ category.friendly_name }} wines</h3>
+        </div>
+        <div class="row mx-3">
+            {% if search_term or current_categories or current_sorting != 'None_None' %}
+            <div class="col-sm-12 text-center back-arrow">
+                <a href="{% url 'wines' %}"><i class="fas fa-arrow-left"></i>All wines</a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endfor %}
+    <div class="row mx-5">
+        <div class="product-container col-10 offset-1">
+            <div class="row mt-1 mb-2">
+                <div class="col-12 col-md-6 my-auto order-md-last d-flex justify-content-center justify-content-md-end">
+                    <div class="sort-select-wrapper w-50">
+                        <select id="sort-selector"
+                            class="custom-select custom-select-sm rounded-0 border border-{% if current_sorting != 'None_None' %}info{% else %}black{% endif %}">
+                            <option value="reset" {% if current_sorting == 'None_None' %}selected{% endif %}>Sort by...
+                            </option>
+                            <option value="price_asc" {% if current_sorting == 'price_asc' %}selected{% endif %}>Price
+                                (low to high)</option>
+                            <option value="price_desc" {% if current_sorting == 'price_desc' %}selected{% endif %}>Price
+                                (high to low)</option>
+                            <option value="name_asc" {% if current_sorting == 'name_asc' %}selected{% endif %}>Name
+                                (A-Z)</option>
+                            <option value="name_desc" {% if current_sorting == 'name_desc' %}selected{% endif %}>Name
+                                (Z-A)</option>
+                            <option value="category_asc" {% if current_sorting == 'category_asc' %}selected{% endif %}>
+                                Category (A-Z)</option>
+                            <option value="category_desc"
+                                {% if current_sorting == 'category_desc' %}selected{% endif %}>Category (Z-A)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 order-md-first">
+                    <p class="text-muted mt-5 text-center text-md-left">
+                        {{ wines|length }} products{% if search_term %} found for
+                        <strong>"{{ search_term }}"</strong>{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="product-container mx-5 my-5">
+            <div class="row align-items-end">
+                {% for wine in wines %}
+                <div class="col-sm-12 col-md-6 col-lg-3 text-center my-2">
+                    <div class="card h-100">
+                        {% if wine.image %}
+                            <img class="image-fluid" src="{{ MEDIA_URL }}{{ wine.image }}" alt="{{ wine.name }}" />
+                        {% else %}
+                            <img class="image-fluid" src="{{ MEDIA_URL }}wine-blank.jpg" alt="{{ wine.name }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <a href="{% url 'wine_details' wine.id %}">
+                            <p class="card-title">{{ wine.name }}</p>
+                            </a>
+                            <p>£ {{ wine.price }}</p>
+                        {% if wine.category %}
+                            <p><a class="text-muted" href="{% url 'wines' %}?category={{ wine.category.name }}">Type:
+                            {{ wine.category.friendly_name }} Wine</a>
+                            </p>
+                        {% endif %}
+                        {% if request.user.is_superuser %}
+                            <small class="ml-3">
+                            <a href="{% url 'edit_product' wine.id %}">Edit</a> |
+                            <a class="text-danger" href="{% url 'delete_product' wine.id %}">Delete</a>
+                            </small>
+                        {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Pagination to display 10 products per page -->       
+<section class="pagination-cotainer my-4">
+    <div class="container pb-4">
+      <div class="row">
+        <div class="col-12">
+          <div class="pagination justify-content-center">
+                    <span class="step-links">
+                {% if wines.has_previous %}
+                <a class="pagination-space" href="?page=1">&laquo; first</a>
+                <a class="pagination-space" href="?page={{ wines.previous_page_number }}">previous</a>
+                {% endif %}
+
+                <span class="current pagination-space">
+                Page {{ wines.number }} of {{ wines.paginator.num_pages }}.
+                </span> 
+                {% if wines.has_next %}
+                <a class="pagination-space" href="?page={{ wines.next_page_number }}">next</a>
+                <a href="?page={{ wines.paginator.num_pages }}">last &raquo;</a> {% endif %}
+                </span>
+            </div>
+        </div>
+     </div>
+  </div>
+</section>
+{% endblock %}
+
+
+
+{% block postloadjs %}
+{{ block.super }}
+<script>
+    $('#sort-selector').change(function () {
+        var selector = $(this);
+        var currentUrl = new URL(window.location);
+
+        var selectedVal = selector.val();
+        if (selectedVal != "reset") {
+            var sort = selectedVal.split("_")[0];
+            var direction = selectedVal.split("_")[1];
+
+            currentUrl.searchParams.set("sort", sort);
+            currentUrl.searchParams.set("direction", direction);
+
+            window.location.replace(currentUrl);
+        } else {
+            currentUrl.searchParams.delete("sort");
+            currentUrl.searchParams.delete("direction");
+
+            window.location.replace(currentUrl);
+        }
+    })
+</script>
+{% endblock %}
